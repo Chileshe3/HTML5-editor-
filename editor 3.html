@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Code Editor</title>
+
+    <!-- CodeMirror Core -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    
+    <!-- Theme -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    
+    <!-- Additional CodeMirror Features -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closetag.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/xml-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/html-hint.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        :root {
+            --bg-dark: #1C2333;
+            --bg-darker: #171D2D;
+            --bg-light: #242D3F;
+            --border: #2D3548;
+            --text: #F5F9FC;
+            --text-dim: #A4A7AC;
+            --blue: #0097F7;
+            --green: #4CAF50;
+            --red: #f44336;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--bg-darker);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .button {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .button:hover {
+            border-color: var(--blue);
+            background: var(--bg-darker);
+        }
+
+        .button.primary {
+            background: var(--blue);
+            border-color: var(--blue);
+        }
+
+        .button.primary:hover {
+            opacity: 0.9;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .tabs {
+            background: var(--bg-darker);
+            padding: 0 20px;
+            display: flex;
+            gap: 2px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: var(--bg-light);
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 14px;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--bg-dark);
+            color: var(--text);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--blue);
+        }
+
+        .editor-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .CodeMirror {
+            height: 100% !important;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 14px;
+            padding: 10px 0;
+            background: var(--bg-dark) !important;
+            user-select: text !important;
+            -webkit-user-select: text !important;
+        }
+
+        .CodeMirror-gutters {
+            background: var(--bg-dark) !important;
+            border-right: 1px solid var(--border) !important;
+        }
+
+        .CodeMirror-linenumber {
+            color: var(--text-dim) !important;
+        }
+
+        .preview {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            display: none;
+        }
+
+        .preview.active {
+            display: block;
+        }
+
+        .preview-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: var(--bg-darker);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+        }
+
+        #preview-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .status {
+            background: var(--bg-darker);
+            padding: 8px 20px;
+            border-top: 1px solid var(--border);
+            color: var(--text-dim);
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-message {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+        }
+
+        .status-indicator.saving {
+            background: var(--blue);
+        }
+
+        .status-indicator.error {
+            background: var(--red);
+        }
+
+        .context-menu {
+            position: fixed;
+            background: var(--bg-darker);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 4px 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .context-menu-item {
+            padding: 6px 20px;
+            cursor: pointer;
+            color: var(--text);
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .context-menu-item:hover {
+            background: var(--bg-light);
+        }
+
+        /* Make text selection more visible */
+        .CodeMirror-selected { 
+            background: rgba(0, 151, 247, 0.3) !important;
+        }
+        .CodeMirror-selectedtext {
+            color: white !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Enhanced Code Editor</h1>
+        <div class="buttons">
+            <button class="button" id="previewBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+                Preview
+            </button>
+            <button class="button primary" id="runBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                Run
+            </button>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" data-file="html">index.html</button>
+        <button class="tab" data-file="css">styles.css</button>
+        <button class="tab" data-file="js">script.js</button>
+    </div>
+
+    <div class="editor-container">
+        <textarea id="editor"></textarea>
+        <div class="preview">
+            <div class="preview-header">
+                <span>Preview</span>
+                <button class="button" id="closePreviewBtn">Back to Editor</button>
+            </div>
+            <iframe id="preview-frame" sandbox="allow-scripts"></iframe>
+        </div>
+    </div>
+
+    <div class="status">
+        <div class="status-message">
+            <div class="status-indicator"></div>
+            <span id="status">Ready</span>
+        </div>
+        <div class="file-info" id="fileInfo"></div>
+    </div>
+
+    <script>
+        // Initialize CodeMirror with enhanced features
+        const editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+            lineNumbers: true,
+            theme: "dracula",
+            mode: "htmlmixed",
+            lineWrapping: true,
+            tabSize: 2,
+            indentUnit: 2,
+            autoCloseBrackets: true,
+            autoCloseTags: true,
+            matchBrackets: true,
+            indentWithTabs: false,
+            dragDrop: true,
+            allowDropFileTypes: ["text/plain", ".js", ".html", ".css"],
+            inputStyle: "contenteditable", // Changed to improve selection handling
+            extraKeys: {
+                "Ctrl-Space": "autocomplete",
+                "Tab": function(cm) {
+                    if (cm.somethingSelected()) {
+                        cm.indentSelection("add");
+                    } else {
+                        cm.replaceSelection("  ", "end");
+                    }
+                }
+            }
+        });
+
+        // Enhanced clipboard operations
+        editor.setOption("extraKeys", {
+            ...editor.getOption("extraKeys"),
+            "Ctrl-C": function(cm) {
+                const selectedText = cm.getSelection();
+                if (selectedText) {
+                    navigator.clipboard.writeText(selectedText);
+                    updateStatus('Copied to clipboard');
+                }
+            },
+            "Ctrl-X": function(cm) {
+                const selectedText = cm.getSelection();
+                if (selectedText) {
+                    navigator.clipboard.writeText(selectedText);
+                    cm.replaceSelection('');
+                    updateStatus('Cut to clipboard');
+                }
+            },
+            "Ctrl-V": async function(cm) {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    cm.replaceSelection(text);
+                    updateStatus('Pasted from clipboard');
+                } catch (err) {
+                    updateStatus('Failed to paste', 'error');
+                }
+            },
+            "Delete": function(cm) {
+                if (cm.somethingSelected()) {
+                    cm.replaceSelection('');
+                } else {
+                    const cursor = cm.getCursor();
+                    const line = cm.getLine(cursor.line);
+                    if (cursor.ch < line.length) {
+                        cm.replaceRange('', cursor, {line: cursor.line, ch: cursor.ch + 1});
+                    } else if (cursor.line < cm.lineCount() - 1) {
+                        cm.replaceRange('', cursor, {line: cursor.line + 1, ch: 0});
+                    }
+                }
+            }
+        });
+
+        // Initialize files with default content
+        const files = {
+            html: localStorage.getItem('html') || '<!DOCTYPE html>\n<html>\n  <head>\n    <title>My Page</title>\n  </head>\n  <body>\n    <h1>Hello World!</h1>\n  </body>\n</html>',
+            css: localStorage.getItem('css') || 'body {\n  margin: 0;\n  padding: 20px;\n  font-family: sans-serif;\n}',
+            js: localStorage.getItem('js') || '// Your JavaScript code here\nconsole.log("Hello from JavaScript!");'
+        };
+
+        let currentFile = 'html';
+        let lastSaveTimeout;
+
+        // Update file info
+        function updateFileInfo() {
+            const info = document.getElementById('fileInfo');
+            const cursor = editor.getCursor();
+            const selection = editor.getSelection();
+            const selectionLength = selection.length;
+            
+            if (selectionLength > 0) {
+                info.textContent = `Selected: ${selectionLength} chars | Line ${cursor.line + 1}, Column ${cursor.ch + 1}`;
+            } else {
+                info.textContent = `Line ${cursor.line + 1}, Column ${cursor.ch + 1}`;
+            }
+        }
+
+        editor.on('cursorActivity', updateFileInfo);
+
+        // Enhanced tab switching with mode handling
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Save current content
+                files[currentFile] = editor.getValue();
+                localStorage.setItem(currentFile, files[currentFile]);
+
+                // Update tabs
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Switch file
+                currentFile = tab.dataset.file;
+                const modes = {
+                    'html': 'htmlmixed',
+                    'css': 'css',
+                    'js': 'javascript'
+                };
+                
+                editor.setOption('mode', modes[currentFile]);
+                editor.setValue(files[currentFile]);
+                
+                // Put cursor at the end of content
+                const lastLine = editor.lineCount() - 1;
+                const lastCh = editor.getLine(lastLine).length;
+                editor.setCursor(lastLine, lastCh);
+                
+                updateStatus(`Editing ${currentFile.toUpperCase()}`);
+            });
+        });
+
+        // Enhanced preview functionality
+        const previewBtn = document.getElementById('previewBtn');
+        const closePreviewBtn = document.getElementById('closePreviewBtn');
+        const preview = document.querySelector('.preview');
+
+        function togglePreview() {
+            files[currentFile] = editor.getValue();
+            localStorage.setItem(currentFile, files[currentFile]);
+            
+            preview.classList.toggle('active');
+            
+            if (preview.classList.contains('active')) {
+                updatePreview();
+            }
+        }
+
+        previewBtn.addEventListener('click', togglePreview);
+        closePreviewBtn.addEventListener('click', togglePreview);
+
+        function updatePreview() {
+            const frame = document.getElementById('preview-frame');
+            const content = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <style>${files.css}</style>
+                </head>
+                <body>
+                    ${files.html}
+                    <script>${files.js}<\/script>
+                </body>
+                </html>
+            `;
+            
+            frame.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(content);
+            updateStatus('Preview updated');
+        }
+
+        // Enhanced run functionality
+        document.getElementById('runBtn').addEventListener('click', () => {
+            files[currentFile] = editor.getValue();
+            localStorage.setItem(currentFile, files[currentFile]);
+            
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Preview</title>
+                    <style>${files.css}</style>
+                </head>
+                <body>
+                    ${files.html}
+                    <script>${files.js}<\/script>
+                </body>
+                </html>
+            `);
+            newWindow.document.close();
+            updateStatus('Code running in new window');
+        });
+
+        // Improved status updates with visual indicator
+        function updateStatus(message, type = 'success') {
+            const status = document.getElementById('status');
+            const indicator = document.querySelector('.status-indicator');
+            
+            status.textContent = message;
+            indicator.className = 'status-indicator ' + type;
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    status.textContent = 'Ready';
+                    indicator.className = 'status-indicator';
+                }, 3000);
+            }
+        }
+
+        // Enhanced auto-save with debouncing
+        function saveContent() {
+            const indicator = document.querySelector('.status-indicator');
+            indicator.className = 'status-indicator saving';
+            
+            files[currentFile] = editor.getValue();
+            localStorage.setItem(currentFile, files[currentFile]);
+            
+            clearTimeout(lastSaveTimeout);
+            lastSaveTimeout = setTimeout(() => {
+                updateStatus('Auto-saved');
+            }, 1000);
+        }
+
+        editor.on('change', () => {
+            clearTimeout(lastSaveTimeout);
+            lastSaveTimeout = setTimeout(saveContent, 1000);
+        });
+
+        // Enhanced keyboard shortcuts with selection preservation
+        document.addEventListener('keydown', (e) => {
+            // Save: Ctrl/Cmd + S
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveContent();
+                updateStatus('Saved');
+            }
+            
+            // Preview: Ctrl/Cmd + P
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                togglePreview();
+            }
+            
+            // Run: Ctrl/Cmd + Enter
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('runBtn').click();
+            }
+
+            // Switch tabs: Ctrl/Cmd + 1/2/3
+            if ((e.ctrlKey || e.metaKey) && ['1', '2', '3'].includes(e.key)) {
+                e.preventDefault();
+                const files = ['html', 'css', 'js'];
+                const index = parseInt(e.key) - 1;
+                document.querySelector(`[data-file="${files[index]}"]`).click();
+            }
+        });
+
+        // Improved error handling
+        window.addEventListener('error', (e) => {
+            updateStatus(`Error: ${e.message}`, 'error');
+            console.error('Editor error:', e);
+        });
+
+        // Enhanced context menu with selection preservation
+        editor.on('contextmenu', (cm, e) => {
+            e.preventDefault();
+            
+            const menu = document.createElement('div');
+            menu.className = 'context-menu';
+            menu.style.left = `${e.clientX}px`;
+            menu.style.top = `${e.clientY}px`;
+
+            const menuItems = [
+                {
+                    text: 'Cut',
+                    action: () => {
+                        const selection = cm.getSelection();
+                        if (selection) {
+                            navigator.clipboard.writeText(selection);
+                            cm.replaceSelection('');
+                            updateStatus('Cut to clipboard');
+                        }
+                    }
+                },
+                {
+                    text: 'Copy',
+                    action: () => {
+                        const selection = cm.getSelection();
+                        if (selection) {
+                            navigator.clipboard.writeText(selection);
+                            updateStatus('Copied to clipboard');
+                        }
+                    }
+                },
+                {
+                    text: 'Paste',
+                    action: async () => {
+                        try {
+                            const text = await navigator.clipboard.readText();
+                            cm.replaceSelection(text);
+                            updateStatus('Pasted from clipboard');
+                        } catch (err) {
+                            updateStatus('Paste failed', 'error');
+                        }
+                    }
+                },
+                {
+                    text: 'Select All',
+                    action: () => {
+                        cm.execCommand('selectAll');
+                        updateStatus('All text selected');
+                    }
+                },
+                {
+                    text: 'Delete',
+                    action: () => {
+                        if (cm.somethingSelected()) {
+                            cm.replaceSelection('');
+                            updateStatus('Selection deleted');
+                        }
+                    }
+                }
+            ];
+
+            menuItems.forEach(item => {
+                const menuItem = document.createElement('div');
+                menuItem.className = 'context-menu-item';
+                menuItem.textContent = item.text;
+                menuItem.onclick = () => {
+                    item.action();
+                    menu.remove();
+                };
+                menu.appendChild(menuItem);
+            });
+
+            document.body.appendChild(menu);
+
+            // Close menu when clicking outside
+            const closeMenu = (e) => {
+                if (!menu.contains(e.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                }
+            };
+            document.addEventListener('click', closeMenu);
+        });
+
+        // Handle file drag and drop
+        editor.on('drop', (cm, e) => {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const content = e.target.result;
+                    cm.setValue(content);
+                    updateStatus(`Loaded file: ${file.name}`);
+                };
+                reader.onerror = (e) => {
+                    updateStatus('Error loading file', 'error');
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Initialize editor with improved selection handling
+        editor.setValue(files[currentFile]);
+        updateFileInfo();
+        editor.focus();
+
+        // Add indent guides
+        editor.on('renderLine', (cm, line, elt) => {
+            const charWidth = editor.defaultCharWidth();
+            const basePadding = 4;
+            
+            const leadingSpaces = line.text.match(/^\s*/)[0].length;
+            if (leadingSpaces > 0) {
+                elt.style.textIndent = `-${leadingSpaces * charWidth}px`;
+                elt.style.paddingLeft = `${basePadding + (leadingSpaces * charWidth)}px`;
+            }
+        });
+
+        // Enable native selection behavior
+        editor.getWrapperElement().style.userSelect = 'text';
+        editor.getWrapperElement().style.webkitUserSelect = 'text';
+
+        // Final initialization
+        editor.refresh();
+        updateStatus('Editor ready');
+    </script>
+</body>
+</html>
